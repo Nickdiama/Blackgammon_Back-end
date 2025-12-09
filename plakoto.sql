@@ -33,13 +33,13 @@ CREATE TABLE `board_empty` (
   `y` int(1) NOT NULL,
   `piece_color` enum('W','B') DEFAULT NULL,
   PRIMARY KEY (`y`,`x`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
 
-LOCK TABLES `board` WRITE; 
-INSERT INTO `board` VALUES (1,1,'B'),(1,2,'B'),(1,11,'W'),(1,12,'W');
+LOCK TABLES `board_empty` WRITE; 
+INSERT INTO `board_empty` VALUES (1,1,'B'),(1,2,'B'),(1,11,'W'),(1,12,'W');
 
 -- Insert NULL piece_color for all other positions in a 12x12 board
-INSERT INTO `board` (`x`,`y`,`piece_color`)
+INSERT INTO `board_empty` (`x`,`y`,`piece_color`)
 SELECT X.i, Y.j, NULL
 FROM (
   SELECT 1 AS i UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
