@@ -69,7 +69,7 @@ CREATE TABLE `game_status` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 LOCK TABLES `game_status` WRITE;
-INSERT INTO `game_status` VALUES ('started','W','D','2022-11-28 18:39:59');
+INSERT INTO `game_status` VALUES ('started','W','2022-11-28 18:39:59');
 UNLOCK TABLES;
 
 DROP TABLE IF EXISTS `players`;
