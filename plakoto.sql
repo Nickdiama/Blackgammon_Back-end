@@ -57,7 +57,7 @@ UNLOCK TABLES;
 
 DROP TABLE IF EXISTS `game_status`;
 CREATE TABLE `game_status` (
-  `status` enum('not active','initialized','started','ended','aborded') NOT NULL DEFAULT 'not active',
+  `status` enum('not active','initialized','started','ended','aborted') NOT NULL DEFAULT 'not active',
   `p_turn` enum('W','B') DEFAULT NULL,
   start_dice_w SMALLINT DEFAULT NULL,
   start_dice_b SMALLINT DEFAULT NULL,
@@ -69,7 +69,7 @@ CREATE TABLE `game_status` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 LOCK TABLES `game_status` WRITE;
-INSERT INTO `game_status` VALUES ('started','W','1','1','1','1',NULL,'1','2022-11-28 18:39:59');
+INSERT INTO `game_status` VALUES ('not active','W','1','1','1','1',NULL,'1','2022-11-28 18:39:59');
 UNLOCK TABLES;
 
 DROP TABLE IF EXISTS `players`;
@@ -82,7 +82,7 @@ CREATE TABLE `players` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 LOCK TABLES `players` WRITE;
-INSERT INTO `players` VALUES ('qqqqqq','B','8599a2efe05697622caeddae84507ee3','2022-11-28 18:16:51'),('aaaa','W','05da4297eecc648e840b6d3bfa772adc','2022-11-28 17:16:54');
+INSERT INTO `players` VALUES ('qqqqqq','B',NULL,'2022-11-28 18:16:51'),('aaaa','W',NULL,'2022-11-28 17:16:54');
 UNLOCK TABLES;
 
 DROP PROCEDURE IF EXISTS `clean_board`;
@@ -103,17 +103,17 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `move_piece`(x1 int,y1 int,x2 int,y2
 BEGIN
 	declare  p_color char;
 
-	select piece_color into p_color FROM `board` WHERE X=x1 AND Y=y1;
+	select piece_color into p_color 
+  FROM `board` 
+  WHERE X=x1 AND Y=y1;
 
 	update board
 	set piece_color=p_color
 	where x=x2 and y=y2;
 
 	UPDATE board
-	SET piece=null,piece_color=null
+	SET piece_color=null
 	WHERE X=x1 AND Y=y1;
 
-	update game_status set p_turn=if(p_color='W','B','W');
-	
 END ;;
 DELIMITER ;
