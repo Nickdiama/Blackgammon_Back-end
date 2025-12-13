@@ -59,17 +59,17 @@ DROP TABLE IF EXISTS `game_status`;
 CREATE TABLE `game_status` (
   `status` enum('not active','initialized','started','ended','aborded') NOT NULL DEFAULT 'not active',
   `p_turn` enum('W','B') DEFAULT NULL,
-  start_dice_w TINYINT DEFAULT NULL,
-  start_dice_b TINYINT DEFAULT NULL,
-  dice1 TINYINT DEFAULT NULL,
-  dice2 TINYINT DEFAULT NULL,
+  start_dice_w SMALLINT DEFAULT NULL,
+  start_dice_b SMALLINT DEFAULT NULL,
+  dice1 SMALLINT DEFAULT NULL,
+  dice2 SMALLINT DEFAULT NULL,
   `result` enum('B','W') DEFAULT NULL,
   score TINYINT DEFAULT 1, -- μονό ή διπλό παιχνίδι
   `last_change` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 LOCK TABLES `game_status` WRITE;
-INSERT INTO `game_status` VALUES ('started','W','2022-11-28 18:39:59');
+INSERT INTO `game_status` VALUES ('started','W','1','1','1','1',NULL,'1','2022-11-28 18:39:59');
 UNLOCK TABLES;
 
 DROP TABLE IF EXISTS `players`;
