@@ -1,22 +1,24 @@
 <?php
+require_once "lib/dbconnect.php";
 
+// Χειρισμός ρίψης ζαριού για την έναρξη του παιχνιδιού
 function handle_start_dice($method, $input) {
     if ($method !== 'POST') {
         header('HTTP/1.1 405 Method Not Allowed');
-        echo json_encode(['error' => 'POST only']);
+        print json_encode(['error' => 'POST only']);
         return;
     }
 
     global $mysqli; 
 
-    // 1. Έλεγχος token
+    // Έλεγχος token
     if (empty($input['token'])) {
         header('HTTP/1.1 401 Unauthorized');
-        echo json_encode(['error' => 'Missing token']);
+        print json_encode(['error' => 'Missing token']);
         return;
     }
 
-    // 2. Βρες παίκτη από token
+    // Βρες παίκτη από token
     $stmt = $mysqli->prepare(
         "SELECT piece_color FROM players WHERE token = ?"
     );
@@ -26,36 +28,38 @@ function handle_start_dice($method, $input) {
     $stmt->fetch();
     $stmt->close();
 
+    // Έλεγχος έγκυρου token
     if (!$color) {
         header('HTTP/1.1 401 Unauthorized');
-        echo json_encode(['error' => 'Invalid token']);
+        print json_encode(['error' => 'Invalid token']);
         return;
     }
 
-    // 3. Έλεγχος game status
+    // Έλεγχος game status
     $res = $mysqli->query(
         "SELECT status, start_dice_w, start_dice_b 
          FROM game_status"
     );
     $gs = $res->fetch_assoc();
 
-    if ($gs['status'] !== 'initialized') {
+    // Έλεγχος αν το παιχνίδι είναι στην φάση αρχικής ρίψης
+    if ($gs['status'] !== 'started') {
         header('HTTP/1.1 400 Bad Request');
-        echo json_encode(['error' => 'Game not in initial roll phase']);
+        print json_encode(['error' => 'Game not in initial roll phase']);
         return;
     }
 
-    // 4. Έλεγχος αν έχει ήδη ρίξει
+    // Έλεγχος αν έχει ήδη ρίξει
     if ($color === 'W' && $gs['start_dice_w'] !== null) {
-        echo json_encode(['error' => 'You already rolled']);
+        print json_encode(['error' => 'You already rolled']);
         return;
     }
     if ($color === 'B' && $gs['start_dice_b'] !== null) {
-        echo json_encode(['error' => 'You already rolled']);
+        print json_encode(['error' => 'You already rolled']);
         return;
     }
 
-    // 5. Ρίξε ζάρι
+    // Ρίξε ζάρι
     $roll = random_int(1, 6);
 
     if ($color === 'W') {
@@ -68,24 +72,21 @@ function handle_start_dice($method, $input) {
         );
     }
 
-    // 6. Ξαναδιάβασε για να δούμε αν έριξαν και οι δύο
+    // Ξαναδιάβασε για να δούμε αν έριξαν και οι δύο
     $res = $mysqli->query(
         "SELECT start_dice_w, start_dice_b FROM game_status LIMIT 1"
     );
     $gs = $res->fetch_assoc();
 
-    // 7. Αν έχουν ρίξει και οι δύο
+    // Έλεγχος αν έριξαν και οι δύο
     if ($gs['start_dice_w'] !== null && $gs['start_dice_b'] !== null) {
-
+        // Αν είναι ισοπαλία
         if ($gs['start_dice_w'] == $gs['start_dice_b']) {
-            // Ισοπαλία → ξαναρίχνουν
             $mysqli->query(
-                "UPDATE game_status 
-                 SET start_dice_w = NULL,
-                     start_dice_b = NULL"
+                "UPDATE game_status SET start_dice_w = NULL, start_dice_b = NULL"
             );
 
-            echo json_encode([
+            print json_encode([
                 'you_rolled'   => $roll,
                 'result'       => 'tie',
                 'message'      => 'Tie, roll again'
@@ -95,14 +96,11 @@ function handle_start_dice($method, $input) {
 
         // Βρες ποιος ξεκινά
         $starter = ($gs['start_dice_w'] > $gs['start_dice_b']) ? 'W' : 'B';
+        
+        // Ενημέρωσε την κατάσταση παιχνιδιού
+        $mysqli->query("UPDATE game_status SET p_turn = '$starter', status = 'started'");
 
-        $mysqli->query(
-            "UPDATE game_status 
-             SET p_turn = '$starter',
-                 status = 'started'"
-        );
-
-        echo json_encode([
+        print json_encode([
             'you_rolled' => $roll,
             'starter'   => $starter,
             'status'    => 'started'
@@ -110,10 +108,85 @@ function handle_start_dice($method, $input) {
         return;
     }
 
-    // 8. Αν περιμένουμε τον άλλο παίκτη
-    echo json_encode([
+    // Αν περιμένουμε τον άλλο παίκτη να ρίξει
+    print json_encode([
         'you_rolled' => $roll,
         'waiting_for_other' => true
+    ]);
+}
+
+// Ρήψη ζαριού κατά τη διάρκεια του παιχνιδιού
+function handle_game_dice($method, $input) {
+    if ($method !== 'POST') {
+        header('HTTP/1.1 405 Method Not Allowed');
+        print json_encode(['error' => 'POST only']);
+        return;
+    }
+
+    global $mysqli; 
+
+    // Έλεγχος token
+    if (empty($input['token'])) {
+        header('HTTP/1.1 401 Unauthorized');
+        print json_encode(['error' => 'Missing token']);
+        return;
+    }
+
+    // Βρες παίκτη από token
+    $stmt = $mysqli->prepare(
+        "SELECT piece_color FROM players WHERE token = ?"
+    );
+    $stmt->bind_param("s", $input['token']);
+    $stmt->execute();
+    $stmt->bind_result($color);
+    $stmt->fetch();
+    $stmt->close();
+
+    // Έλεγχος έγκυρου token
+    if (!$color) {
+        header('HTTP/1.1 401 Unauthorized');
+        print json_encode(['error' => 'Invalid token']);
+        return;
+    }
+    // Έλεγχος game status
+    $res = $mysqli->query("SELECT status, p_turn, dice1, dice2 FROM game_status LIMIT 1");
+    $gs = $res->fetch_assoc();
+
+    // Έλεγχος φάσης παιχνιδιού
+    if ($gs['status'] !== 'started') {
+        header('HTTP/1.1 400 Bad Request');
+        print json_encode(['error' => 'Game not started']);
+        return;
+    }
+
+    // Έλεγχος σειράς
+    if ($gs['p_turn'] !== $color) {
+        header('HTTP/1.1 403 Forbidden');
+        print json_encode(['error' => 'Not your turn']);
+        return;
+    }
+
+    // Έλεγχος αν υπάρχουν ήδη ζάρια
+    if ($gs['dice1'] !== null || $gs['dice2'] !== null) {
+        header('HTTP/1.1 400 Bad Request');
+        print json_encode(['error' => 'Dice already rolled']);
+        return;
+    }
+
+    // Ρίξε ζάρι
+    $d1 = random_int(1, 6);
+    $d2 = random_int(1, 6);
+
+    // Αποθήκευσε τα ζάρια
+    $stmt = $mysqli->prepare("UPDATE game_status SET dice1 = ?, dice2 = ?");
+    $stmt->bind_param("ii", $d1, $d2);
+    $stmt->execute();
+    $stmt->close();
+
+    // Επιστροφή αποτελέσματος
+    print json_encode([
+        'dice' => [$d1, $d2],
+        'turn' => $color
     ]);
 }
 

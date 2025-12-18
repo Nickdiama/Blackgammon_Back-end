@@ -1,60 +1,47 @@
+-- Δημιουργία του ταμπλό
 DROP TABLE IF EXISTS `board`;
 CREATE TABLE `board` (
-  `x` int(1) NOT NULL,
-  `y` int(1) NOT NULL,
-  `piece_color` enum('W','B') DEFAULT NULL,
-  PRIMARY KEY (`y`,`x`)
+  position INT UNSIGNED NOT NULL,
+  w_count  INT UNSIGNED NOT NULL DEFAULT 0,
+  b_count  INT UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (position)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-LOCK TABLES `board` WRITE; 
-INSERT INTO `board` VALUES (1,1,'B'),(1,2,'B'),(1,11,'W'),(1,12,'W');
+-- Εισαγωγή θέσεων από 0 έως 24 (0: εκτός ταμπλό, 1-24: θέσεις στο ταμπλό)
+LOCK TABLES `board` WRITE;
 
--- Insert NULL piece_color for all other positions in a 12x12 board
-INSERT INTO `board` (`x`,`y`,`piece_color`)
-SELECT X.i, Y.j, NULL
-FROM (
-  SELECT 1 AS i UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
+INSERT INTO board (position)
+SELECT n FROM (
+  SELECT 0 n UNION ALL
+  SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
   UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8
   UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12
-) AS X
-CROSS JOIN (
-  SELECT 1 AS j UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
-  UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8
-  UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12
-) AS Y
-WHERE NOT (X.i = 1 AND Y.j IN (1,2,11,12));
+  UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15 UNION ALL SELECT 16
+  UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20
+  UNION ALL SELECT 21 UNION ALL SELECT 22 UNION ALL SELECT 23 UNION ALL SELECT 24
+) AS positions;
+
+-- Αρχική θέση άσπρων πουλιών (κάτω αριστερά)
+UPDATE board
+SET w_count = 2
+WHERE position = 1;
+
+-- Αρχική θέση μαύρων πουλιών (πάνω αριστερά)
+UPDATE board
+SET b_count = 2
+WHERE position = 24;
+
+-- Υπόλοιπα πούλια (εκτός ταμπλό)
+UPDATE board
+SET w_count = 13, b_count = 13
+WHERE position = 0;  
 
 UNLOCK TABLES;
 
-DROP TABLE IF EXISTS `board_empty`;
+-- reset του ταμπλό
+TRUNCATE TABLE board;
 
-CREATE TABLE `board_empty` (
-  `x` int(1) NOT NULL,
-  `y` int(1) NOT NULL,
-  `piece_color` enum('W','B') DEFAULT NULL,
-  PRIMARY KEY (`y`,`x`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
-
-LOCK TABLES `board_empty` WRITE; 
-INSERT INTO `board_empty` VALUES (1,1,'B'),(1,2,'B'),(1,11,'W'),(1,12,'W');
-
--- Insert NULL piece_color for all other positions in a 12x12 board
-INSERT INTO `board_empty` (`x`,`y`,`piece_color`)
-SELECT X.i, Y.j, NULL
-FROM (
-  SELECT 1 AS i UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
-  UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8
-  UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12
-) AS X
-CROSS JOIN (
-  SELECT 1 AS j UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
-  UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8
-  UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12
-) AS Y
-WHERE NOT (X.i = 1 AND Y.j IN (1,2,11,12));
-
-UNLOCK TABLES;
-
+-- Δημιουργία του πίνακα game_status
 DROP TABLE IF EXISTS `game_status`;
 CREATE TABLE `game_status` (
   `status` enum('not active','initialized','started','ended','aborted') NOT NULL DEFAULT 'not active',
@@ -68,52 +55,69 @@ CREATE TABLE `game_status` (
   `last_change` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- Αρχικοποίηση του πίνακα game_status
 LOCK TABLES `game_status` WRITE;
 INSERT INTO `game_status` VALUES ('not active','W','1','1','1','1',NULL,'1','2022-11-28 18:39:59');
 UNLOCK TABLES;
 
+-- Δημιουργία του πίνακα players
 DROP TABLE IF EXISTS `players`;
 CREATE TABLE `players` (
   `username` varchar(20) DEFAULT NULL,
-  `piece_color` enum('B','W') NOT NULL,
+  `piece_color` enum('B','W') DEFAULT NULL,
   `token` varchar(100) DEFAULT NULL,
   `last_action` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`piece_color`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- Αρχικοποίηση του πίνακα players
 LOCK TABLES `players` WRITE;
 INSERT INTO `players` VALUES ('qqqqqq','B',NULL,'2022-11-28 18:16:51'),('aaaa','W',NULL,'2022-11-28 17:16:54');
 UNLOCK TABLES;
 
+-- Δημιουργία procedure για αρχικοποίηση του παιχνιδιού
 DROP PROCEDURE IF EXISTS `clean_board`;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `clean_board`()
 BEGIN
-	REPLACE INTO board SELECT * FROM board_empty;
+	-- Επαναφορά του ταμπλό
+	UPDATE board SET w_count = 0, b_count = 0;
+	
+	-- Αρχική θέση άσπρων πουλιών (κάτω αριστερά)
+	UPDATE board SET w_count = 2 WHERE position = 1;
+	
+	-- Αρχική θέση μαύρων πουλιών (πάνω αριστερά)
+	UPDATE board SET b_count = 2 WHERE position = 24;
+	
+	-- Υπόλοιπα πούλια (εκτός ταμπλό)
+	UPDATE board SET w_count = 13, b_count = 13 WHERE position = 0;
 	
 	UPDATE `players` SET username=NULL, token=NULL, last_action=NULL;
   
-	UPDATE `game_status` SET `status`='not active', `p_turn`=NULL, `result`=NULL, dice1=NULL, dice2=NULL, start_dice_w=NULL, start_dice_b=NULL;
+	UPDATE `game_status` SET `status`='not active', `p_turn`=NULL, `result`=NULL, `dice1`=NULL, `dice2`=NULL, `start_dice_w`=NULL, `start_dice_b`=NULL;
 END ;;
 DELIMITER ;
 
+-- Δημιουργία procedure για κίνηση πούλιου
 DROP PROCEDURE IF EXISTS `move_piece`;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `move_piece`(x1 int,y1 int,x2 int,y2 int)
+CREATE DEFINER=`root`@`localhost` PROCEDURE `move_piece`(player_username varchar(20), from_pos int, to_pos int)
 BEGIN
-	declare  p_color char;
+	declare p_color char;
 
+	-- Βρες το χρώμα του παίκτη
 	select piece_color into p_color 
-  FROM `board` 
-  WHERE X=x1 AND Y=y1;
+	FROM `players` 
+	WHERE player_username = username;
 
-	update board
-	set piece_color=p_color
-	where x=x2 and y=y2;
-
-	UPDATE board
-	SET piece_color=null
-	WHERE X=x1 AND Y=y1;
+	-- Μείωση του αριθμού των πουλιών από την αρχική θέση και αύξηση στην τελική θέση
+	IF p_color = 'W' THEN
+		UPDATE board SET w_count = w_count - 1 WHERE position = from_pos;
+		UPDATE board SET w_count = w_count + 1 WHERE position = to_pos;
+	ELSEIF p_color = 'B' THEN
+		UPDATE board SET b_count = b_count - 1 WHERE position = from_pos;
+		UPDATE board SET b_count = b_count + 1 WHERE position = to_pos;
+	END IF;
 
 END ;;
 DELIMITER ;
