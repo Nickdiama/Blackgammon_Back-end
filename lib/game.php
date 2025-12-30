@@ -54,7 +54,7 @@ function update_game_status() {
 		case 0: $new_status='not active'; break;
 		case 1: $new_status='initialized'; break;
 		// Αν μπήκαν δύο παίκτες, μηδένησε τα ζάρια εκκίνησης
-		case 2: $new_status='initialized';
+		case 2: $new_status='started';
 			$mysqli->query("UPDATE game_status SET start_dice_w = NULL, start_dice_b = NULL");
 			break;
 		}

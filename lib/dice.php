@@ -1,14 +1,7 @@
 <?php
-require_once "lib/dbconnect.php";
 
 // Χειρισμός ρίψης ζαριού για την έναρξη του παιχνιδιού
-function handle_start_dice($method, $input) {
-    if ($method !== 'POST') {
-        header('HTTP/1.1 405 Method Not Allowed');
-        print json_encode(['error' => 'POST only']);
-        return;
-    }
-
+function handle_start_dice($input) {
     global $mysqli; 
 
     // Έλεγχος token
@@ -41,13 +34,6 @@ function handle_start_dice($method, $input) {
          FROM game_status"
     );
     $gs = $res->fetch_assoc();
-
-    // Έλεγχος αν το παιχνίδι είναι στην φάση αρχικής ρίψης
-    if ($gs['status'] !== 'started') {
-        header('HTTP/1.1 400 Bad Request');
-        print json_encode(['error' => 'Game not in initial roll phase']);
-        return;
-    }
 
     // Έλεγχος αν έχει ήδη ρίξει
     if ($color === 'W' && $gs['start_dice_w'] !== null) {
@@ -89,7 +75,7 @@ function handle_start_dice($method, $input) {
             print json_encode([
                 'you_rolled'   => $roll,
                 'result'       => 'tie',
-                'message'      => 'Tie, roll again'
+                'message'      => 'Roll again'
             ]);
             return;
         }
@@ -116,55 +102,11 @@ function handle_start_dice($method, $input) {
 }
 
 // Ρήψη ζαριού κατά τη διάρκεια του παιχνιδιού
-function handle_game_dice($method, $input) {
-    if ($method !== 'POST') {
-        header('HTTP/1.1 405 Method Not Allowed');
-        print json_encode(['error' => 'POST only']);
-        return;
-    }
-
-    global $mysqli; 
-
-    // Έλεγχος token
-    if (empty($input['token'])) {
-        header('HTTP/1.1 401 Unauthorized');
-        print json_encode(['error' => 'Missing token']);
-        return;
-    }
-
-    // Βρες παίκτη από token
-    $stmt = $mysqli->prepare(
-        "SELECT piece_color FROM players WHERE token = ?"
-    );
-    $stmt->bind_param("s", $input['token']);
-    $stmt->execute();
-    $stmt->bind_result($color);
-    $stmt->fetch();
-    $stmt->close();
-
-    // Έλεγχος έγκυρου token
-    if (!$color) {
-        header('HTTP/1.1 401 Unauthorized');
-        print json_encode(['error' => 'Invalid token']);
-        return;
-    }
+function handle_game_dice() {
+    global $mysqli;
     // Έλεγχος game status
     $res = $mysqli->query("SELECT status, p_turn, dice1, dice2 FROM game_status LIMIT 1");
     $gs = $res->fetch_assoc();
-
-    // Έλεγχος φάσης παιχνιδιού
-    if ($gs['status'] !== 'started') {
-        header('HTTP/1.1 400 Bad Request');
-        print json_encode(['error' => 'Game not started']);
-        return;
-    }
-
-    // Έλεγχος σειράς
-    if ($gs['p_turn'] !== $color) {
-        header('HTTP/1.1 403 Forbidden');
-        print json_encode(['error' => 'Not your turn']);
-        return;
-    }
 
     // Έλεγχος αν υπάρχουν ήδη ζάρια
     if ($gs['dice1'] !== null || $gs['dice2'] !== null) {
@@ -183,11 +125,6 @@ function handle_game_dice($method, $input) {
     $stmt->execute();
     $stmt->close();
 
-    // Επιστροφή αποτελέσματος
-    print json_encode([
-        'dice' => [$d1, $d2],
-        'turn' => $color
-    ]);
 }
 
 ?>

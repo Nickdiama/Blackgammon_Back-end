@@ -101,14 +101,14 @@ DELIMITER ;
 -- Δημιουργία procedure για κίνηση πούλιου
 DROP PROCEDURE IF EXISTS `move_piece`;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `move_piece`(player_username varchar(20), from_pos int, to_pos int)
+CREATE DEFINER=`root`@`localhost` PROCEDURE `move_piece`(player_token varchar(100), from_pos int, to_pos int)
 BEGIN
 	declare p_color char;
 
 	-- Βρες το χρώμα του παίκτη
 	select piece_color into p_color 
 	FROM `players` 
-	WHERE player_username = username;
+	WHERE player_token = token;
 
 	-- Μείωση του αριθμού των πουλιών από την αρχική θέση και αύξηση στην τελική θέση
 	IF p_color = 'W' THEN
