@@ -54,8 +54,14 @@ function move_piece($from, $to, $token) {
 		exit;
 	}
 
-	$color_piece = ($color=='w') ? 1 : 2; // Χρώμα κομματιού: 1 για άσπρο, 2 για μαύρο
+	// Τοπικά ζάρια
+    if ($status['dice1'] === $status['dice2']) {
+        $dice = array_fill(0, 4, $status['dice1']); // διπλή
+    } else {
+        $dice = [$status['dice1'], $status['dice2']];
+    }
 	
+	$color_piece = ($color=='w') ? 1 : 2; // Χρώμα κομματιού: 1 για άσπρο, 2 για μαύρο
 	// Έλεγχος αν υπάρχει κομμάτι του παίκτη στη θέση 'from'
 	$st = $mysqli->prepare("SELECT $color_piece FROM board WHERE position = ?");
 	$st->bind_param("i", $from);
@@ -75,6 +81,26 @@ function move_piece($from, $to, $token) {
 		exit;
 	}
 
+	
+	$st = $mysqli->prepare("SELECT top_color FROM board WHERE position = $to");
+	$st->bind_param("i", $to);
+	$st->execute();
+	$top_color = $st->get_result()->fetch_row()[0];
+
+	// Έλεγχος αν το κομμάτι είναι μπλοκαρισμένο
+	if ($cnt != $top_color && $top_color != null) {
+		header("HTTP/1.1 400 Bad Request");
+		print json_encode(['errormesg'=>"Your piece is blocked by opponent piece."]);
+		exit;
+	}
+
+	// Έλεγχος αν η θέση 'to' είναι κατειλημμένη από δύο ή περισσότερα κομμάτια του αντιπάλου
+	if ($color != $top_color && $top_color != null) {
+		header("HTTP/1.1 400 Bad Request");
+		print json_encode(['errormesg'=>"The 'to' position is blocked by opponent pieces."]);
+		exit;
+	}
+	
 	// Κίνηση κομματιού
 	global $mysqli;
 	$sql = 'call move_piece(?,?,?)';
@@ -83,6 +109,39 @@ function move_piece($from, $to, $token) {
 	$st->execute();
 	header('Content-type: application/json');
 	print json_encode(read_board(), JSON_PRETTY_PRINT);
+
+	//Ενημέρωση top_color
+	$st = $mysqli->prepare("SELECT * FROM board WHERE position IN (?,?)");
+    $st->bind_param('ii', $from, $to);
+    $st->execute();
+    $rows = $st->get_result()->fetch_all(MYSQLI_ASSOC);
+    foreach ($rows as $r) {
+        if ($r['position'] == $to)   $dst = $r;
+    }
+	if ($color == 'W'){
+		if($dst['b_count']==1){
+			$mysqli->query("UPDATE board SET b_count=1, top_color='W' WHERE position=$to");
+		} else {
+			$mysqli->query("UPDATE board SET w_count=w_count+1, top_color='W' WHERE position=$to");
+		}
+	} else {
+		if($dst['w_count']==1){
+			$mysqli->query("UPDATE board SET w_count=1, top_color='B' WHERE position=$to");
+		} else {
+			$mysqli->query("UPDATE board SET b_count=b_count+1, top_color='B' WHERE position=$to");
+		}
+	}
+
+	// Αφαίρεση χρησιμοποιημένου ζαριού
+	$key = array_search($distance, $dice);
+    unset($dice[$key]);
+	
+	//Αλλαγή σειράς
+	if (count($dice) == 0) {
+        $next = ($color === 'W') ? 'B' : 'W';
+        $mysqli->query("UPDATE game_status SET p_turn='$next', dice1=NULL, dice2=NULL");
+    }
+
 }
 
 ?>

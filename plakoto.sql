@@ -4,6 +4,7 @@ CREATE TABLE `board` (
   position INT UNSIGNED NOT NULL,
   w_count  INT UNSIGNED NOT NULL DEFAULT 0,
   b_count  INT UNSIGNED NOT NULL DEFAULT 0,
+  top_color ENUM('W','B') DEFAULT NULL,
   PRIMARY KEY (position)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -37,9 +38,6 @@ SET w_count = 13, b_count = 13
 WHERE position = 0;  
 
 UNLOCK TABLES;
-
--- reset του ταμπλό
-TRUNCATE TABLE board;
 
 -- Δημιουργία του πίνακα game_status
 DROP TABLE IF EXISTS `game_status`;
