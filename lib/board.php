@@ -61,7 +61,7 @@ function move_piece($from, $to, $token) {
         $dice = [$status['dice1'], $status['dice2']];
     }
 	
-	$color_piece = ($color=='w') ? 1 : 2; // Χρώμα κομματιού: 1 για άσπρο, 2 για μαύρο
+	$color_piece = ($color=='W') ? 1 : 2; // Χρώμα κομματιού: 1 για άσπρο, 2 για μαύρο
 	// Έλεγχος αν υπάρχει κομμάτι του παίκτη στη θέση 'from'
 	$st = $mysqli->prepare("SELECT $color_piece FROM board WHERE position = ?");
 	$st->bind_param("i", $from);
@@ -82,7 +82,7 @@ function move_piece($from, $to, $token) {
 	}
 
 	
-	$st = $mysqli->prepare("SELECT top_color FROM board WHERE position = $to");
+	$st = $mysqli->prepare("SELECT top_color FROM board WHERE position = ?");
 	$st->bind_param("i", $to);
 	$st->execute();
 	$top_color = $st->get_result()->fetch_row()[0];
@@ -102,7 +102,6 @@ function move_piece($from, $to, $token) {
 	}
 	
 	// Κίνηση κομματιού
-	global $mysqli;
 	$sql = 'call move_piece(?,?,?)';
 	$st = $mysqli->prepare($sql);
 	$st->bind_param("sii", $token, $from, $to);
@@ -111,8 +110,8 @@ function move_piece($from, $to, $token) {
 	print json_encode(read_board(), JSON_PRETTY_PRINT);
 
 	//Ενημέρωση top_color
-	$st = $mysqli->prepare("SELECT * FROM board WHERE position IN (?,?)");
-    $st->bind_param('ii', $from, $to);
+	$st = $mysqli->prepare("SELECT * FROM board WHERE position = ?");
+    $st->bind_param('i', $to);
     $st->execute();
     $rows = $st->get_result()->fetch_all(MYSQLI_ASSOC);
     foreach ($rows as $r) {
@@ -121,20 +120,25 @@ function move_piece($from, $to, $token) {
 	if ($color == 'W'){
 		if($dst['b_count']==1){
 			$mysqli->query("UPDATE board SET b_count=1, top_color='W' WHERE position=$to");
-		} else {
+		} elseif ($dst['b_count'] > 1) {
 			$mysqli->query("UPDATE board SET w_count=w_count+1, top_color='W' WHERE position=$to");
 		}
 	} else {
 		if($dst['w_count']==1){
 			$mysqli->query("UPDATE board SET w_count=1, top_color='B' WHERE position=$to");
-		} else {
+		} elseif ($dst['w_count'] > 1) {
 			$mysqli->query("UPDATE board SET b_count=b_count+1, top_color='B' WHERE position=$to");
 		}
 	}
+	print json_encode($dice, JSON_PRETTY_PRINT);
 
 	// Αφαίρεση χρησιμοποιημένου ζαριού
-	$key = array_search($distance, $dice);
-    unset($dice[$key]);
+	foreach ($dice as $key => $value) {
+		if ($value == $distance) {
+			unset($dice[$key]);
+			break;
+		}
+	}
 	
 	//Αλλαγή σειράς
 	if (count($dice) == 0) {

@@ -125,6 +125,12 @@ function handle_game_dice() {
     $stmt->execute();
     $stmt->close();
 
+    // Επιστροφή αποτελέσματος
+    print json_encode([
+        'dice1' => $d1,
+        'dice2' => $d2
+    ]);
+
 }
 
 ?>

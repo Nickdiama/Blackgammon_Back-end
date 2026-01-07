@@ -37,6 +37,20 @@ UPDATE board
 SET w_count = 13, b_count = 13
 WHERE position = 0;  
 
+-- Ρύθμιση top_color W και B στις αρχικές θέσεις
+UPDATE board
+SET top_color = 'W'
+WHERE position = 1;
+
+UPDATE board
+SET top_color = 'B'
+WHERE position = 24;
+
+-- Ρύθμιση top_color NULL στις υπόλοιπες θέσεις
+UPDATE board
+SET top_color = NULL
+WHERE position NOT IN (1,24);
+
 UNLOCK TABLES;
 
 -- Δημιουργία του πίνακα game_status
@@ -55,7 +69,7 @@ CREATE TABLE `game_status` (
 
 -- Αρχικοποίηση του πίνακα game_status
 LOCK TABLES `game_status` WRITE;
-INSERT INTO `game_status` VALUES ('not active','W','1','1','1','1',NULL,'1','2022-11-28 18:39:59');
+INSERT INTO `game_status` VALUES ('not active','W','1','1','1','1',NULL,NULL,'2022-11-28 18:39:59');
 UNLOCK TABLES;
 
 -- Δημιουργία του πίνακα players
@@ -106,7 +120,7 @@ BEGIN
 	-- Βρες το χρώμα του παίκτη
 	select piece_color into p_color 
 	FROM `players` 
-	WHERE player_token = token;
+	WHERE token = player_token;
 
 	-- Μείωση του αριθμού των πουλιών από την αρχική θέση και αύξηση στην τελική θέση
 	IF p_color = 'W' THEN

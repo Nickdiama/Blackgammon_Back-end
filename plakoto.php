@@ -4,6 +4,7 @@ require_once "lib/dbconnect.php";
 require_once "lib/board.php";
 require_once "lib/game.php";
 require_once "lib/users.php";
+require_once "lib/dice.php";
 
 $method = $_SERVER['REQUEST_METHOD'];
 $request = explode('/', trim($_SERVER['PATH_INFO'],'/'));
@@ -29,14 +30,35 @@ switch ($r=array_shift($request)) {
 			case 'piece': 
 				handle_piece($method, $request[0], $request[1], $input);
 				break;
-			//default: 
-				//header("HTTP/1.1 404 Not Found");
-				//print "<h1>Page not found (404)</h1>";
-				//break;
+			default: 
+				header("HTTP/1.1 404 Not Found");
+				print "<h1>Page not found (404)</h1>";
+				break;
 		}
 		break;
 	case 'dice':
-		handle_game_dice($request, $input);
+		switch ($b=array_shift($request)) {
+		case 'start':
+			if($method=='GET'){
+				handle_start_dice($input);
+			} else {
+				header("HTTP/1.1 400 Bad Request");
+				print json_encode(['errormesg'=>"Method $method not allowed here."]);
+			}
+			break;
+		case 'roll':
+			if($method=='GET'){
+				handle_game_dice();
+			} else {
+				header("HTTP/1.1 400 Bad Request");
+				print json_encode(['errormesg'=>"Method $method not allowed here."]);
+			}
+			break;
+		default:
+			header("HTTP/1.1 404 Not Found");
+			print "<h1>Page not found (404), choose 'start' or 'roll'</h1>";
+			break;
+		}
 		break;
 	case 'status': 
 		if(sizeof($request)==0) {
@@ -66,25 +88,6 @@ function handle_board($method, $input) {
   	}
 }
 
-function handle_game_dice($method,$p, $input) {
-	if($method=='GET'){
-		switch ($b=array_shift($p)) {
-			case 'start':
-				handle_start_dice($input);
-				break;
-			case 'roll':
-				handle_game_dice();
-				break;
-			default:
-				header("HTTP/1.1 404 Not Found");
-				print "<h1>Page not found (404), choose 'start' or 'roll'</h1>";
-				break;
-		}
-	}else{
-		header("HTTP/1.1 400 Bad Request"); 
-		print json_encode(['errormesg'=>"Method $method not allowed here."]);
-	}
-}
 
 function handle_piece($method, $from, $to, $input) {
     if($method=='GET') {
@@ -106,6 +109,8 @@ function handle_player($method, $p, $input) {
 			}
 	        break;
 		case 'B': 
+			handle_user($method, $b, $input);
+			break;
 		case 'W': 
 			handle_user($method, $b, $input);
 			break;
