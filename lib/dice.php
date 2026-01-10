@@ -118,10 +118,15 @@ function handle_game_dice() {
     // Ρίξε ζάρι
     $d1 = random_int(1, 6);
     $d2 = random_int(1, 6);
+    if ($d1 == $d2) {
+        // Αν είναι διπλό, ρίξε δύο ακόμα ζάρια
+        $d3 = $d1;
+        $d4 = $d2;
+    }
 
     // Αποθήκευσε τα ζάρια
-    $stmt = $mysqli->prepare("UPDATE game_status SET dice1 = ?, dice2 = ?");
-    $stmt->bind_param("ii", $d1, $d2);
+    $stmt = $mysqli->prepare("UPDATE game_status SET dice1 = ?, dice2 = ?, dice3 = ?, dice4 = ?");
+    $stmt->bind_param("iiii", $d1, $d2, $d3, $d4);
     $stmt->execute();
     $stmt->close();
 

@@ -62,6 +62,8 @@ CREATE TABLE `game_status` (
   start_dice_b SMALLINT DEFAULT NULL,
   dice1 SMALLINT DEFAULT NULL,
   dice2 SMALLINT DEFAULT NULL,
+  dice3 SMALLINT DEFAULT NULL,
+  dice4 SMALLINT DEFAULT NULL,
   `result` enum('B','W') DEFAULT NULL,
   score TINYINT DEFAULT 1, -- μονό ή διπλό παιχνίδι
   `last_change` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -69,7 +71,7 @@ CREATE TABLE `game_status` (
 
 -- Αρχικοποίηση του πίνακα game_status
 LOCK TABLES `game_status` WRITE;
-INSERT INTO `game_status` VALUES ('not active','W','1','1','1','1',NULL,NULL,'2022-11-28 18:39:59');
+INSERT INTO `game_status` VALUES ('not active','W',NULL,NULL,NULL,NULL,NULL,NULL,'1',NULL,NULL,'2022-11-28 18:39:59');
 UNLOCK TABLES;
 
 -- Δημιουργία του πίνακα players
