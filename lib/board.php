@@ -77,26 +77,30 @@ function move_piece($from, $to, $token) {
 		exit;
 	}
 
-	
+	$st = $mysqli->prepare("SELECT top_color FROM board WHERE position = ?");
+	$st->bind_param("i", $from);
+	$st->execute();
+	$top_color_from = $st->get_result()->fetch_row()[0];
+
 	$st = $mysqli->prepare("SELECT top_color FROM board WHERE position = ?");
 	$st->bind_param("i", $to);
 	$st->execute();
-	$top_color = $st->get_result()->fetch_row()[0];
-//-----------------------------------------------------------------------------------------------------------------------------------
+	$top_color_to = $st->get_result()->fetch_row()[0];
+
 	// Έλεγχος αν το κομμάτι είναι μπλοκαρισμένο
-	//if ($cnt != $top_color && $top_color != null) {
-		//header("HTTP/1.1 400 Bad Request");
-		//print json_encode(['errormesg'=>"Your piece is blocked by opponent piece."]);
-		//exit;
-	//}
+	if ($color != $top_color_from && $top_color_from != null) {
+		header("HTTP/1.1 400 Bad Request");
+		print json_encode(['errormesg'=>"Your piece is blocked by opponent piece."]);
+		exit;
+	}
 
 	// Έλεγχος αν η θέση 'to' είναι κατειλημμένη από δύο ή περισσότερα κομμάτια του αντιπάλου
-	//if ($color != $top_color && $top_color != null) {
-		//header("HTTP/1.1 400 Bad Request");
-		//print json_encode(['errormesg'=>"The 'to' position is blocked by opponent pieces."]);
-		//exit;
-	//}
-//-----------------------------------------------------------------------------------------------------------------------------------	
+	if ($color != $top_color_to && $top_color_to != null) {
+		header("HTTP/1.1 400 Bad Request");
+		print json_encode(['errormesg'=>"The 'to' position is blocked by opponent pieces."]);
+		exit;
+	}
+
 	// Κίνηση κομματιού
 	$sql = 'call move_piece(?,?,?)';
 	$st = $mysqli->prepare($sql);
