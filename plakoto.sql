@@ -8,7 +8,7 @@ CREATE TABLE `board` (
   PRIMARY KEY (position)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Εισαγωγή θέσεων από 0 έως 24 (0: εκτός ταμπλό, 1-24: θέσεις στο ταμπλό)
+-- Εισαγωγή θέσεων από 0 έως 24 (0,25: εκτός ταμπλό, 1-24: θέσεις στο ταμπλό)
 LOCK TABLES `board` WRITE;
 
 INSERT INTO board (position)
@@ -19,7 +19,8 @@ SELECT n FROM (
   UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12
   UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15 UNION ALL SELECT 16
   UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20
-  UNION ALL SELECT 21 UNION ALL SELECT 22 UNION ALL SELECT 23 UNION ALL SELECT 24
+  UNION ALL SELECT 21 UNION ALL SELECT 22 UNION ALL SELECT 23 UNION ALL SELECT 24 UNION ALL
+  SELECT 25
 ) AS positions;
 
 -- Αρχική θέση άσπρων πουλιών (κάτω αριστερά)
@@ -34,8 +35,12 @@ WHERE position = 24;
 
 -- Υπόλοιπα πούλια (εκτός ταμπλό)
 UPDATE board
-SET w_count = 13, b_count = 13
+SET w_count = 13
 WHERE position = 0;  
+
+UPDATE board
+SET b_count = 13
+WHERE position = 25;
 
 -- Ρύθμιση top_color W και B στις αρχικές θέσεις
 UPDATE board
@@ -64,6 +69,7 @@ CREATE TABLE `game_status` (
   dice2 SMALLINT DEFAULT NULL,
   dice3 SMALLINT DEFAULT NULL,
   dice4 SMALLINT DEFAULT NULL,
+  double_count TINYINT DEFAULT 0,
   `result` enum('B','W') DEFAULT NULL,
   score TINYINT DEFAULT 1, -- μονό ή διπλό παιχνίδι
   `last_change` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -71,7 +77,7 @@ CREATE TABLE `game_status` (
 
 -- Αρχικοποίηση του πίνακα game_status
 LOCK TABLES `game_status` WRITE;
-INSERT INTO `game_status` VALUES ('not active','W',NULL,NULL,NULL,NULL,NULL,NULL,'1',NULL,NULL,'2022-11-28 18:39:59');
+INSERT INTO `game_status` VALUES ('not active', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '1','2022-11-28 18:39:59');
 UNLOCK TABLES;
 
 -- Δημιουργία του πίνακα players
@@ -104,11 +110,12 @@ BEGIN
 	UPDATE board SET b_count = 2 WHERE position = 24;
 	
 	-- Υπόλοιπα πούλια (εκτός ταμπλό)
-	UPDATE board SET w_count = 13, b_count = 13 WHERE position = 0;
+	UPDATE board SET w_count = 13 WHERE position = 0;
+  UPDATE board SET b_count = 13 WHERE position = 25;
 	
 	UPDATE `players` SET username=NULL, token=NULL, last_action=NULL;
   
-	UPDATE `game_status` SET `status`='not active', `p_turn`=NULL, `result`=NULL, `dice1`=NULL, `dice2`=NULL, `start_dice_w`=NULL, `start_dice_b`=NULL;
+	UPDATE `game_status` SET `status`='not active', `p_turn`=NULL, `result`=NULL, `dice1`=NULL, `dice2`=NULL, `dice3`=NULL, `dice4`=NULL, `double_count`=0, `start_dice_w`=NULL, `start_dice_b`=NULL;
 END ;;
 DELIMITER ;
 

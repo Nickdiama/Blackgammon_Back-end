@@ -48,7 +48,7 @@ switch ($r=array_shift($request)) {
 			break;
 		case 'roll':
 			if($method=='GET'){
-				handle_game_dice();
+				handle_game_dice($input['token']);
 			} else {
 				header("HTTP/1.1 400 Bad Request");
 				print json_encode(['errormesg'=>"Method $method not allowed here."]);
@@ -90,10 +90,8 @@ function handle_board($method, $input) {
 
 
 function handle_piece($method, $from, $to, $input) {
-    if($method=='GET') {
-        //show_piece($x,$y);
-    } else if ($method=='PUT') {
-        move_piece($from, $to, $input['token']);
+   if ($method=='PUT') {
+    	move_piece($from, $to, $input['token']);
     }    
 }
 

@@ -1,4 +1,6 @@
 <?php
+require_once "lib/game.php";
+require_once "lib/users.php";
 
 // Χειρισμός ρίψης ζαριού για την έναρξη του παιχνιδιού
 function handle_start_dice($input) {
@@ -102,8 +104,18 @@ function handle_start_dice($input) {
 }
 
 // Ρήψη ζαριού κατά τη διάρκεια του παιχνιδιού
-function handle_game_dice() {
+function handle_game_dice($token) {
     global $mysqli;
+
+    //Έλεγχος αν είναι η σειρά του παίκτη
+    $status = read_status();
+    $color = current_color($token);
+	if($status['p_turn']!=$color) {
+		header("HTTP/1.1 400 Bad Request");
+		print json_encode(['errormesg'=>"It is not your turn."]);
+		exit;
+	}
+
     // Έλεγχος game status
     $res = $mysqli->query("SELECT status, p_turn, dice1, dice2 FROM game_status LIMIT 1");
     $gs = $res->fetch_assoc();
