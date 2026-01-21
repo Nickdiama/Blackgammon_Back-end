@@ -42,6 +42,15 @@ function move_piece($from, $to, $token) {
 	//Εάν το παιχνίδι δεν βρίσκεται σε κατάσταση started, raise error
 	$status = read_status();
 	if($status['status']!='started') {
+		if($status['status']=='ended') {
+			header("HTTP/1.1 400 Bad Request");
+			print json_encode([
+				'errormesg'=>"Game has ended.",
+				'result'=>$status['result'],
+				'score'=>$status['score']
+				]);
+			exit;
+		}
 		header("HTTP/1.1 400 Bad Request");
 		print json_encode(['errormesg'=>"Game is not in action."]);
 		exit;
@@ -157,6 +166,46 @@ function move_piece($from, $to, $token) {
 		if ($w_from<=1 && $b_from<=1){
 			$mysqli->query("UPDATE board SET top_color=NULL WHERE position=$from");
 		}
+	}
+	//Έλεγχος για τον νικητή
+	$st = $mysqli->prepare("SELECT w_count FROM board WHERE position = 25");
+	$st->execute();
+	$w_out = (int)$st->get_result()->fetch_row()[0];
+	$st = $mysqli->prepare("SELECT b_count FROM board WHERE position = 0");
+	$st->execute();
+	$b_out = (int)$st->get_result()->fetch_row()[0];
+
+	$st = $mysqli->prepare("SELECT w_count, b_count FROM board WHERE position = 1");
+	$st->execute();
+	$m1 = $st->get_result()->fetch_assoc();	
+	$st = $mysqli->prepare("SELECT w_count, b_count FROM board WHERE position = 24");
+	$st->execute();
+	$m24 = $st->get_result()->fetch_assoc();
+
+	$white_double = ($color === 'W' && $m24['b_count'] == 1 && $m24['w_count'] == 1) || 
+	($w_out == 15 && $b_out == 0);
+	$black_double = ($color === 'B' && $m1['w_count'] == 1 && $m1['b_count'] == 1) || 
+	($b_out == 15 && $w_out == 0);
+
+	if ($white_double) {
+		$mysqli->query("UPDATE game_status SET status='ended', result='W', score='2'");
+		print json_encode("White wins with a double score!");
+		exit;
+	}
+	if ($black_double) {
+		$mysqli->query("UPDATE game_status SET status='ended', result='B', score='2'");
+		print json_encode("Black wins with a double score!");
+		exit;
+	} 
+	if ($w_out == 15) {
+		$mysqli->query("UPDATE game_status SET status='ended', result='W', score='1'");
+		print json_encode("White wins!");
+		exit;
+	}
+	if ($b_out == 15) {
+		$mysqli->query("UPDATE game_status SET status='ended', result='B', score='1'");
+		print json_encode("Black wins!");
+		exit;
 	}
 
 	header('Content-type: application/json');

@@ -115,6 +115,22 @@ function handle_game_dice($token) {
 		print json_encode(['errormesg'=>"It is not your turn."]);
 		exit;
 	}
+    
+    //Εάν το παιχνίδι δεν βρίσκεται σε κατάσταση started, raise error
+    if($status['status']!='started') {
+		if($status['status']=='ended') {
+			header("HTTP/1.1 400 Bad Request");
+			print json_encode([
+				'errormesg'=>"Game has ended.",
+				'result'=>$status['result'],
+				'score'=>$status['score']
+				]);
+			exit;
+		}
+		header("HTTP/1.1 400 Bad Request");
+		print json_encode(['errormesg'=>"Game is not in action."]);
+		exit;
+	}
 
     // Έλεγχος game status
     $res = $mysqli->query("SELECT status, p_turn, dice1, dice2 FROM game_status LIMIT 1");
