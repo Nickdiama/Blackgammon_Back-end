@@ -101,18 +101,18 @@ DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `clean_board`()
 BEGIN
 	-- Επαναφορά του ταμπλό
-	UPDATE board SET w_count = 0, b_count = 0;
+	UPDATE board SET w_count = 0, b_count = 0, top_color = NULL;
 	
 	-- Αρχική θέση άσπρων πουλιών (κάτω αριστερά)
-	UPDATE board SET w_count = 2 WHERE position = 1;
+	UPDATE board SET w_count = 2, top_color = 'W' WHERE position = 1;
 	
 	-- Αρχική θέση μαύρων πουλιών (πάνω αριστερά)
-	UPDATE board SET b_count = 2 WHERE position = 24;
+	UPDATE board SET b_count = 2, top_color = 'B' WHERE position = 24;
 	
 	-- Υπόλοιπα πούλια (εκτός ταμπλό)
-	UPDATE board SET w_count = 13 WHERE position = 0;
-  UPDATE board SET b_count = 13 WHERE position = 25;
-	
+	UPDATE board SET w_count = 13, top_color = 'W' WHERE position = 0;
+  UPDATE board SET b_count = 13, top_color = 'B' WHERE position = 25;
+
 	UPDATE `players` SET username=NULL, token=NULL, last_action=NULL;
   
 	UPDATE `game_status` SET `status`='not active', `p_turn`=NULL, `result`=NULL, `dice1`=NULL, `dice2`=NULL, `dice3`=NULL, `dice4`=NULL, `double_count`=0, `start_dice_w`=NULL, `start_dice_b`=NULL;

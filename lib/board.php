@@ -1,4 +1,5 @@
 <?php
+require_once "lib/users.php";
 require_once "lib/game.php";
 
 function show_board() {
@@ -45,9 +46,9 @@ function move_piece($from, $to, $token) {
 		if($status['status']=='ended') {
 			header("HTTP/1.1 400 Bad Request");
 			print json_encode([
-				'errormesg'=>"Game has ended.",
+				'errormesg'=>"Game has ended. To start a new game, please reset the board.",
 				'result'=>$status['result'],
-				'score'=>$status['score']
+				'score'=>$status['score'],
 				]);
 			exit;
 		}
@@ -63,19 +64,18 @@ function move_piece($from, $to, $token) {
 		exit;
 	}
 
-	$color_piece = ($color === 'W') ? 1 : 2; // Χρώμα κομματιού: 1 για άσπρο, 2 για μαύρο
-//-----------------------------------------------------------------------------------------------	
+	$column_name = ($color === 'W') ? 'w_count' : 'b_count';
 	// Έλεγχος αν υπάρχει κομμάτι του παίκτη στη θέση 'from'
-	//$st = $mysqli->prepare("SELECT $color_piece FROM board WHERE position = ?");
-	//$st->bind_param("i", $from);
-	//$st->execute();
-	//$cnt = $st->get_result()->fetch_row()[0];
-	//if ($cnt <= 0) {
-		//header("HTTP/1.1 400 Bad Request");
-		//print json_encode(['errormesg'=>"No piece of yours at the 'from' position."]);
-		//exit;
-	//}
-//------------------------------------------------------------------------------------------------
+	$st = $mysqli->prepare("SELECT $column_name FROM board WHERE position = ?");
+	$st->bind_param("i", $from);
+	$st->execute();
+	$cnt = $st->get_result()->fetch_row()[0];
+	if ($cnt <= 0) {
+		header("HTTP/1.1 400 Bad Request");
+		print json_encode(['errormesg'=>"No piece of yours at the 'from' position."]);
+		exit;
+	}
+
 	//Ελεγχος κατεύθυνσης κίνησης
 	if ($color == 'W' && $to <= $from) {
 		header("HTTP/1.1 400 Bad Request");
