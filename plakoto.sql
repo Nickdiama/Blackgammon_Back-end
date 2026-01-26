@@ -61,7 +61,7 @@ UNLOCK TABLES;
 -- Δημιουργία του πίνακα game_status
 DROP TABLE IF EXISTS `game_status`;
 CREATE TABLE `game_status` (
-  `status` enum('not active','initialized','started','ended','aborted') NOT NULL DEFAULT 'not active',
+  `status` enum('not active','initialized','started','ended') NOT NULL DEFAULT 'not active',
   `p_turn` enum('W','B') DEFAULT NULL,
   start_dice_w SMALLINT DEFAULT NULL,
   start_dice_b SMALLINT DEFAULT NULL,

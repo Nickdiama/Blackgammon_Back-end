@@ -64,6 +64,15 @@ function move_piece($from, $to, $token) {
 		exit;
 	}
 
+	//Έλεγχος αν υπαρχουν διαθέσιμες κινήσεις
+	if (!player_has_move($color, $status)) {
+		$next = ($color === 'W') ? 'B' : 'W';
+        $mysqli->query("UPDATE game_status SET p_turn='$next', double_count=0, dice1=NULL, dice2=NULL, dice3=NULL, dice4=NULL");
+		header("HTTP/1.1 200 OK");
+		print json_encode(['errormesg'=>"No available moves. Opponent's turn now."]);
+		exit;
+	}
+	
 	$column_name = ($color === 'W') ? 'w_count' : 'b_count';
 	// Έλεγχος αν υπάρχει κομμάτι του παίκτη στη θέση 'from'
 	$st = $mysqli->prepare("SELECT $column_name FROM board WHERE position = ?");
@@ -124,6 +133,32 @@ function move_piece($from, $to, $token) {
 		exit;
 	}
 
+	// Έλεγχος αν ο παίκτης μπορεί να βγάλει κομμάτια έξω από το ταμπλό
+	if ($color == 'W' && $to == 25) {
+		$st = $mysqli->prepare("SELECT SUM(w_count) FROM board WHERE position BETWEEN 19 AND 24");
+		$st->execute();
+		$white_home = (int)$st->get_result()->fetch_row()[0];
+		$st = $mysqli->prepare("SELECT w_count FROM board WHERE position = 25");
+		$st->execute();
+		$white_out = (int)$st->get_result()->fetch_row()[0]; //Αριθμός λευκών κομματιών που έχουν βγει έξω
+		if ($white_home <15 && $white_out < 0) {
+			header("HTTP/1.1 400 Bad Request");
+			print json_encode(['errormesg'=>"You cannot bear off until all your pieces are in your home board. Choose another move."]);
+			exit;
+		}
+	} elseif ($color == 'B' && $to == 0) {
+		$st = $mysqli->prepare("SELECT SUM(b_count) FROM board WHERE position BETWEEN 1 AND 6");
+		$st->execute();
+		$black_home = (int)$st->get_result()->fetch_row()[0];
+		$st = $mysqli->prepare("SELECT b_count FROM board WHERE position = 0");
+		$st->execute();
+		$black_out = (int)$st->get_result()->fetch_row()[0]; //Αριθμός μαύρων κομματιών που έχουν βγει έξω
+		if ($black_home <15 && $black_out < 0) {
+			header("HTTP/1.1 400 Bad Request");
+			print json_encode(['errormesg'=>"You cannot bear off until all your pieces are in your home board. Choose another move."]);
+			exit;
+		}
+	}
 	// Κίνηση κομματιού
 	$sql = 'call move_piece(?,?,?)';
 	$st = $mysqli->prepare($sql);
@@ -238,6 +273,42 @@ function move_piece($from, $to, $token) {
         $mysqli->query("UPDATE game_status SET p_turn='$next'");
     }
 
+}
+
+function player_has_move($color, $status){
+	global $mysqli;
+
+	$dir = ($color === 'W') ? 1 : -1; //Κατεύθυνση κίνησης +1 για λευκό, -1 για μαύρο
+	$dice = [];
+	foreach (['dice1', 'dice2', 'dice3', 'dice4'] as $d) {
+		if ($status[$d] != null) {
+			$dice[] = $status[$d];
+		}
+	}
+
+	// Έλεγχος για κάθε κομμάτι του παίκτη αν μπορεί να κινηθεί με κάποιο από τα ζάρια
+	$field = ($color === 'W') ? 'w_count' : 'b_count';
+	$res = $mysqli->query("SELECT position FROM board WHERE $field > 0 AND (top_color IS NULL OR top_color='$color')");
+
+	while ($row = $res->fetch_assoc()) {
+		$from = (int)$row['position']; 
+		
+		foreach ($dice as $d) {
+			$to = $from + $dir*$d;
+			if ($to < 0 || $to > 25) continue; //Έξοδος από το ταμπλό
+			$st = $mysqli->prepare("SELECT w_count, b_count FROM board WHERE position = ?");
+			$st->bind_param("i", $to);
+			$st->execute();
+			$dst = $st->get_result()->fetch_assoc();
+
+			if ($color === 'W' && $dst['b_count'] >=2) continue; 
+			if ($color === 'B' && $dst['w_count'] >=2) continue;
+
+			return true; //Υπάρχει διαθέσιμη κίνηση
+		}
+	}
+
+	return false;
 }
 
 ?>
