@@ -251,11 +251,25 @@ function move_piece($from, $to, $token) {
 		$double_count = $status['double_count'];
 		if($double_count < 4){
 			$double_count ++;
-			$mysqli->query("UPDATE game_status SET dice{$double_count}=NULL");
-			$mysqli->query("UPDATE game_status SET double_count={$double_count}");
-		} 
+			for ($i = 1; $i <= 4; $i++) {
+				if ($distance == $status['dice' . $i]) {
+					$mysqli->query("UPDATE game_status SET dice$i=NULL, double_count=$double_count");
+					break;
+				}elseif ($distance == ($status['dice'. $i] + $status['dice'.($i+1)])) {
+					$mysqli->query("UPDATE game_status SET dice$i=NULL, dice".($i+1)."=NULL, double_count=($double_count+1)");
+					break;
+				}elseif ($distance == ($status['dice'. $i] + $status['dice'.($i+1)] + $status['dice'.($i+2)])) {
+					$mysqli->query("UPDATE game_status SET dice$i=NULL, dice".($i+1)."=NULL, dice".($i+2)."=NULL, double_count=($double_count+2)");
+					break;
+				}elseif ($distance == ($status['dice'. $i] + $status['dice'.($i+1)] + $status['dice'.($i+2)] + $status['dice'.($i+3)])) {
+					$mysqli->query("UPDATE game_status SET dice$i=NULL, dice".($i+1)."=NULL, dice".($i+2)."=NULL, dice".($i+3)."=NULL, double_count=($double_count+3)");
+					break;
+				}
+			}
+
+			if($double_count==4) $mysqli->query("UPDATE game_status SET double_count=0");
+		}
 	}else {
-		$mysqli->query("UPDATE game_status SET double_count=0");
 		if ($distance == $status['dice1']) {
 			$mysqli->query("UPDATE game_status SET dice1=NULL");
 		} elseif ($distance == $status['dice2']) {
