@@ -255,20 +255,19 @@ function move_piece($from, $to, $token)
 	// Αφαίρεση χρησιμοποιημένου ζαριού
 	if ($status['dice3'] != null || $status['dice4'] != null) {
 		$double_count = $status['double_count'];
-		if ($double_count < 4) {
-			$double_count++;
+		if ($double_count <= 4) {
 			for ($i = 1; $i <= 4; $i++) {
 				if ($distance == $status['dice' . $i]) {
-					$mysqli->query("UPDATE game_status SET dice$i=NULL, double_count=$double_count");
+					$mysqli->query("UPDATE game_status SET dice$i=NULL, double_count=$double_count+1");
 					break;
 				} elseif ($distance == ($status['dice' . $i] + $status['dice' . ($i + 1)])) {
-					$mysqli->query("UPDATE game_status SET dice$i=NULL, dice" . ($i + 1) . "=NULL, double_count=($double_count+1)");
+					$mysqli->query("UPDATE game_status SET dice$i=NULL, dice" . ($i + 1) . "=NULL, double_count=($double_count+2)");
 					break;
 				} elseif ($distance == ($status['dice' . $i] + $status['dice' . ($i + 1)] + $status['dice' . ($i + 2)])) {
-					$mysqli->query("UPDATE game_status SET dice$i=NULL, dice" . ($i + 1) . "=NULL, dice" . ($i + 2) . "=NULL, double_count=($double_count+2)");
+					$mysqli->query("UPDATE game_status SET dice$i=NULL, dice" . ($i + 1) . "=NULL, dice" . ($i + 2) . "=NULL, double_count=($double_count+3)");
 					break;
 				} elseif ($distance == ($status['dice' . $i] + $status['dice' . ($i + 1)] + $status['dice' . ($i + 2)] + $status['dice' . ($i + 3)])) {
-					$mysqli->query("UPDATE game_status SET dice$i=NULL, dice" . ($i + 1) . "=NULL, dice" . ($i + 2) . "=NULL, dice" . ($i + 3) . "=NULL, double_count=($double_count+3)");
+					$mysqli->query("UPDATE game_status SET dice$i=NULL, dice" . ($i + 1) . "=NULL, dice" . ($i + 2) . "=NULL, dice" . ($i + 3) . "=NULL, double_count=($double_count+4)");
 					break;
 				}
 			}
